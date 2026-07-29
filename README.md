@@ -119,6 +119,23 @@ File chạy nằm ở: `build\windows\x64\runner\Release\worksave.exe`
 SQLite tại `%APPDATA%\com.example\worksave\worksave.db` (thư mục Application Support).
 Backup = copy file này.
 
+## Cá nhân hóa & câu nhắc do AI sinh (v1.2)
+
+- **Tên của bạn**: Settings ⚙ → ô *Tên của bạn*. Thông báo chấm công và lời
+  chúc mừng sẽ gọi tên; để trống thì app gọi chung là "bạn".
+- **Câu nhắc kiểu Duolingo**: mỗi lần nhắc chấm công là một câu khác nhau.
+  AI (Gemini) sinh sẵn một **kho câu** gồm 4 nhóm — sắp tới giờ vào, trễ giờ
+  vào, sắp tới giờ ra, trễ giờ ra — cho cả tiếng Việt và tiếng Anh; app bốc
+  ngẫu nhiên khi bắn thông báo.
+- **Ba giọng**: Settings ⚙ → *Giọng câu nhắc chấm công*: **Nhẹ nhàng** (động
+  viên), **Cà khịa** (châm chọc kiểu con cú Duolingo), **Gắt** (mỉa mai bốp
+  chát kiểu bạn thân đá xoáy). Đổi giọng là kho câu được sinh lại ngay.
+- **Không tốn quota**: app KHÔNG gọi API mỗi lần nhắc. Kho câu chỉ làm mới
+  **mỗi 7 ngày** và chỉ khi đã có API key. Chưa có key, hết quota hay mất mạng
+  thì dùng kho câu viết sẵn trong code (đủ cả ba giọng) — thông báo vẫn chạy.
+- **Không có độ trễ**: kho câu được nạp vào bộ nhớ lúc mở app, nên lúc bắn
+  thông báo không phải chờ đọc DB hay gọi mạng.
+
 ## Nhắc chấm công (v1.1)
 
 Hai lớp cấu hình, ngoại lệ luôn thắng lịch mặc định:

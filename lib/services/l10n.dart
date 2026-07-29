@@ -259,6 +259,63 @@ class L10n {
     'attendance_notif_title': 'WorkSave — Chấm công',
     'praise_attendance': 'Đã {k}!',
 
+    // Cá nhân hóa
+    'user_name': 'Tên của bạn',
+    'user_name_help':
+        'Dùng để xưng hô trong thông báo và lời chúc mừng. Để trống cũng được.',
+    'friend': 'bạn',
+    'cheer_1': '🎉 {name} giỏi quá!',
+    'cheer_2': '🔥 Quá đỉnh {name}!',
+    'cheer_3': '🏆 Tuyệt vời {name}!',
+    'cheer_4': '💪 {name} đúng là chiến thần năng suất!',
+    'cheer_5': '⭐ Xuất sắc {name}!',
+    'cheer_6': '🎊 Thêm một chiến thắng cho {name}!',
+
+    'api_test_btn': 'Kiểm tra kết nối & model',
+    'api_key_missing': 'Chưa nhập API key.',
+    'api_test_no_model':
+        'Key hợp lệ nhưng không có model nào dùng được cho sinh nội dung.',
+    'api_test_ok': 'Kết nối OK — key dùng được {n} model, đang chọn "{m}".',
+    'api_test_switched': 'Model cũ không còn khả dụng, đã đổi sang "{m}".',
+    'api_test_fail': 'Không kết nối được: {e}',
+
+    // Chẩn đoán nhắc
+    'diag_btn': 'Chẩn đoán nhắc',
+    'diag_title': '🩺 Chẩn đoán nhắc',
+    'diag_running': 'Vòng lặp đang chạy',
+    'diag_last_run': 'Lần kiểm tra gần nhất',
+    'diag_last_fired': 'Lần bắn gần nhất',
+    'diag_last_error': 'Lỗi gần nhất',
+    'diag_config': 'Cấu hình',
+    'diag_attendance': 'Chấm công hôm nay',
+    'diag_attendance_off': 'Đang TẮT cả hai mốc — vào tab Chấm công để bật.',
+    'diag_schedule': 'Mục lịch chưa xác nhận (sắp tới / quá hạn)',
+    'diag_schedule_empty':
+        'Không có mục nào đang chờ nhắc (đã xác nhận hết, hoặc đã tắt nhắc).',
+    'diag_test_btn': 'Bắn thử thông báo',
+    'diag_test_title': 'WorkSave — Thử thông báo',
+    'diag_test_body': 'Nếu bạn thấy dòng này thì kênh thông báo đang hoạt động.',
+    'diag_test_sent': 'Đã gửi. Không thấy gì hiện lên nghĩa là Windows đang chặn thông báo của app.',
+    'diag_test_failed': 'Không gửi được thông báo: {e}',
+
+    'nudge_tone': 'Giọng câu nhắc chấm công',
+    'nudge_tone_help':
+        'Áp dụng cho thông báo chấm công. Đổi giọng thì kho câu được sinh lại.',
+    'tone_gentle': 'Nhẹ nhàng',
+    'tone_sassy': 'Cà khịa',
+    'tone_savage': 'Gắt',
+    'nudge_tone_changed': 'Đã đổi sang giọng "{t}". Đang sinh kho câu mới...',
+
+    'attendance_test_btn': 'Thử nhắc',
+    'attendance_status_off':
+        '⚠ Mốc này đang TẮT — gạt công tắc bên phải mới nhắc.',
+    'attendance_status_no_weekday': '⚠ Chưa chọn thứ nào nên sẽ không nhắc.',
+    'attendance_status_none': '⚠ Không có lần nhắc nào trong 14 ngày tới.',
+    'attendance_status_next': 'Lần nhắc kế tiếp: {t}',
+    'attendance_status_active':
+        '🔔 Đang nhắc từ {t} hôm nay — xác nhận để dừng.',
+    'attendance_confirm_short': 'Đã chấm công',
+
     // Settings
     'settings_title': 'Cài đặt',
     'api_key': 'Google AI Studio API key',
@@ -534,6 +591,63 @@ class L10n {
     'attendance_note': 'Note (e.g. overtime for line testing)',
     'attendance_notif_title': 'WorkSave — Attendance',
     'praise_attendance': '{k} done!',
+
+    // Personalisation
+    'user_name': 'Your name',
+    'user_name_help':
+        'Used to address you in notifications and cheers. Leaving it blank is fine.',
+    'friend': 'friend',
+    'cheer_1': '🎉 Nicely done {name}!',
+    'cheer_2': '🔥 Crushing it {name}!',
+    'cheer_3': '🏆 Brilliant {name}!',
+    'cheer_4': '💪 {name}, productivity champion!',
+    'cheer_5': '⭐ Excellent {name}!',
+    'cheer_6': '🎊 Another win for {name}!',
+
+    'api_test_btn': 'Test connection & model',
+    'api_key_missing': 'No API key entered yet.',
+    'api_test_no_model':
+        'The key works but no model is available for content generation.',
+    'api_test_ok': 'Connection OK — {n} models available, using "{m}".',
+    'api_test_switched': 'The old model is gone; switched to "{m}".',
+    'api_test_fail': 'Could not connect: {e}',
+
+    // Reminder diagnostics
+    'diag_btn': 'Reminder diagnostics',
+    'diag_title': '🩺 Reminder diagnostics',
+    'diag_running': 'Loop running',
+    'diag_last_run': 'Last check',
+    'diag_last_fired': 'Last fired',
+    'diag_last_error': 'Last error',
+    'diag_config': 'Configuration',
+    'diag_attendance': 'Attendance today',
+    'diag_attendance_off': 'Both slots are OFF — enable them in the Attendance tab.',
+    'diag_schedule': 'Unconfirmed calendar items (upcoming / overdue)',
+    'diag_schedule_empty':
+        'Nothing waiting for a reminder (all confirmed, or reminders muted).',
+    'diag_test_btn': 'Send test notification',
+    'diag_test_title': 'WorkSave — Test notification',
+    'diag_test_body': 'If you can read this, the notification channel works.',
+    'diag_test_sent': 'Sent. If nothing appeared, Windows is blocking the app notifications.',
+    'diag_test_failed': 'Could not send the notification: {e}',
+
+    'nudge_tone': 'Attendance nudge tone',
+    'nudge_tone_help':
+        'Applies to attendance notifications. Changing it regenerates the pool.',
+    'tone_gentle': 'Gentle',
+    'tone_sassy': 'Sassy',
+    'tone_savage': 'Savage',
+    'nudge_tone_changed': 'Switched to "{t}". Generating a new pool...',
+
+    'attendance_test_btn': 'Test',
+    'attendance_status_off':
+        '⚠ This slot is OFF — flip the switch on the right to enable it.',
+    'attendance_status_no_weekday': '⚠ No weekday selected, so it will never fire.',
+    'attendance_status_none': '⚠ No reminder due in the next 14 days.',
+    'attendance_status_next': 'Next reminder: {t}',
+    'attendance_status_active':
+        '🔔 Reminding since {t} today — confirm to stop.',
+    'attendance_confirm_short': 'Clocked',
 
     'settings_title': 'Settings',
     'api_key': 'Google AI Studio API key',

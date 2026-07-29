@@ -110,6 +110,9 @@ class AttendanceDao {
   Future<void> markNotified(DateTime date, AttendanceKind kind) => _writeState(
       date, kind, {'last_notified_at': DateTime.now().toIso8601String()});
 
+  Future<void> clearNotified(DateTime date, AttendanceKind kind) =>
+      _writeState(date, kind, {'last_notified_at': null});
+
   Future<void> setConfirmed(
     DateTime date,
     AttendanceKind kind, {

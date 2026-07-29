@@ -20,6 +20,12 @@ class GeminiRequestFailed extends GeminiFailure {
   const GeminiRequestFailed(super.message);
 }
 
+/// Model không tồn tại / không phục vụ cho key này (HTTP 404).
+/// Dòng model của Gemini đổi tên theo thế hệ nên đây là lỗi phải tự phục hồi.
+class GeminiModelNotFound extends GeminiFailure {
+  const GeminiModelNotFound(super.message);
+}
+
 /// Nguồn gốc của bản tổng hợp, để UI nói đúng chuyện với người dùng.
 enum SummarySource { ai, aiCached, local }
 
@@ -51,6 +57,76 @@ class GeminiService {
       'https://generativelanguage.googleapis.com/v1beta/models';
 
   bool get isFriday => DateTime.now().weekday == DateTime.friday;
+
+  /// Thứ tự ưu tiên khi tự chọn model: bản flash mới nhất trước, vì rẻ và
+  /// đủ nhanh cho các tác vụ của app.
+  static const List<String> preferredModels = [
+    'gemini-3.6-flash',
+    'gemini-3.1-flash',
+    'gemini-3-flash',
+    'gemini-2.5-flash',
+    'gemini-2.0-flash',
+  ];
+
+  /// Hỏi API xem key này dùng được những model nào cho generateContent.
+  Future<List<String>> listModels(String apiKey) async {
+    final client = _client ?? http.Client();
+    try {
+      final response = await client
+          .get(Uri.parse('$_endpoint?key=$apiKey&pageSize=200'))
+          .timeout(_timeout);
+      if (response.statusCode != 200) {
+        throw GeminiRequestFailed(
+            'HTTP ${response.statusCode}: ${_extractError(response.body) ?? ''}');
+      }
+      final body = jsonDecode(utf8.decode(response.bodyBytes));
+      if (body is! Map<String, dynamic> || body['models'] is! List) {
+        return const [];
+      }
+      final models = <String>[];
+      for (final entry in body['models'] as List) {
+        if (entry is! Map) continue;
+        final methods = entry['supportedGenerationMethods'];
+        if (methods is! List || !methods.contains('generateContent')) continue;
+        final name = '${entry['name']}'.replaceFirst('models/', '');
+        models.add(name);
+      }
+      return models;
+    } finally {
+      if (_client == null) client.close();
+    }
+  }
+
+  /// Chọn model dùng được: ưu tiên theo [preferredModels], sau đó bất kỳ bản
+  /// flash nào, cuối cùng là model đầu tiên khả dụng.
+  Future<String?> resolveUsableModel(String apiKey) async {
+    final available = await listModels(apiKey);
+    if (available.isEmpty) return null;
+
+    for (final candidate in preferredModels) {
+      if (available.contains(candidate)) return candidate;
+    }
+    final flash = available.where((m) =>
+        m.contains('flash') &&
+        !m.contains('image') &&
+        !m.contains('tts') &&
+        !m.contains('live'));
+    return flash.isNotEmpty ? flash.first : available.first;
+  }
+
+  /// Gọi model đang chọn; nếu model đó không còn tồn tại thì tự tìm model
+  /// khác, lưu lại và thử lại một lần.
+  Future<String> _generateWithAutoModel(String apiKey, String prompt) async {
+    final model = await Repos.settings.geminiModel();
+    try {
+      return await _generate(apiKey, model, prompt);
+    } on GeminiModelNotFound {
+      final resolved = await resolveUsableModel(apiKey);
+      if (resolved == null || resolved == model) rethrow;
+      await Repos.settings.saveGeminiModel(resolved);
+      return _generate(apiKey, resolved, prompt);
+    }
+  }
 
   Future<FridaySummary> buildFridaySummary({bool force = false}) async {
     final unfinished = await Repos.tasks.unfinished();
@@ -100,10 +176,9 @@ class GeminiService {
     }
 
     final prompt = await _buildPrompt(unfinished);
-    final model = await settings.geminiModel();
 
     try {
-      final text = await _generate(apiKey, model, prompt);
+      final text = await _generateWithAutoModel(apiKey, prompt);
       await settings.saveFridaySummary(text);
       return FridaySummary(text: text, source: SummarySource.ai);
     } on GeminiQuotaExceeded catch (quota) {
@@ -187,6 +262,16 @@ class GeminiService {
     return buffer.toString();
   }
 
+  /// Gọi model một lần và trả về text thô. Trả null nếu lỗi — dùng cho các
+  /// tính năng phụ không được phép làm hỏng trải nghiệm khi API trục trặc.
+  Future<String?> generateRaw(String apiKey, String prompt) async {
+    try {
+      return await _generateWithAutoModel(apiKey, prompt);
+    } on Object {
+      return null;
+    }
+  }
+
   Future<String> _generate(String apiKey, String model, String prompt) async {
     final client = _client ?? http.Client();
     try {
@@ -212,6 +297,10 @@ class GeminiService {
 
       if (response.statusCode == 429) {
         throw GeminiQuotaExceeded(_extractError(response.body) ?? 'HTTP 429');
+      }
+      if (response.statusCode == 404) {
+        throw GeminiModelNotFound(
+            _extractError(response.body) ?? 'Model $model không khả dụng');
       }
       if (response.statusCode != 200) {
         throw GeminiRequestFailed(

@@ -9,7 +9,9 @@ import 'package:window_manager/window_manager.dart';
 
 import 'app.dart';
 import 'services/l10n.dart';
+import 'services/nudge_service.dart';
 import 'services/tab_order_service.dart';
+import 'services/user_profile.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,4 +47,6 @@ Future<void> _initPlatform() async {
 Future<void> _loadUserPreferences() async {
   await L10n.load();
   await TabOrderService.load();
+  await UserProfile.load();
+  await const NudgeService().prime();
 }

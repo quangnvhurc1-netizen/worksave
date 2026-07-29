@@ -7,6 +7,8 @@ import '../../domain/enums.dart';
 import '../../domain/models/attendance.dart';
 import '../../services/celebration.dart';
 import '../../services/l10n.dart';
+import '../../services/nudge_service.dart';
+import '../../services/reminder_service.dart';
 import '../dialogs/attendance_override_dialog.dart';
 import '../theme.dart';
 
@@ -22,6 +24,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   List<AttendanceRule> _rules = const [];
   List<AttendanceSlot> _todaySlots = const [];
   List<AttendanceOverride> _overrides = const [];
+  final Map<AttendanceKind, DateTime?> _nextReminders = {};
 
   @override
   void initState() {
@@ -33,11 +36,20 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     final rules = await Repos.attendance.rules();
     final slots = await Repos.attendance.slotsOn(DateTime.now());
     final overrides = await Repos.attendance.upcomingOverrides();
+
+    final next = <AttendanceKind, DateTime?>{};
+    for (final rule in rules) {
+      next[rule.kind] = await Repos.attendance.nextReminderFor(rule);
+    }
+
     if (!mounted) return;
     setState(() {
       _rules = rules;
       _todaySlots = slots;
       _overrides = overrides;
+      _nextReminders
+        ..clear()
+        ..addAll(next);
     });
   }
 
@@ -53,7 +65,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       );
 
   Future<void> _saveRule(AttendanceRule rule) async {
-    await Repos.attendance.saveRule(rule);
+    await Repos.attendance.saveRuleAndResetToday(rule);
     await _load();
   }
 
@@ -68,14 +80,39 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     await _saveRule(rule.copyWith(time: ClockTime(picked.hour, picked.minute)));
   }
 
-  Future<void> _confirmSlot(AttendanceSlot slot) async {
+  Future<void> _confirmSlot(AttendanceSlot slot) =>
+      _setConfirmed(slot.kind, confirmed: !slot.confirmed);
+
+  Future<void> _setConfirmed(
+    AttendanceKind kind, {
+    required bool confirmed,
+  }) async {
     await Repos.attendance
-        .setConfirmed(DateTime.now(), slot.kind, confirmed: !slot.confirmed);
-    if (!slot.confirmed) {
+        .setConfirmed(DateTime.now(), kind, confirmed: confirmed);
+    if (confirmed) {
       Celebration.instance
-          .fire(L10n.t2('praise_attendance', {'k': L10n.t(slot.kind.l10nKey)}));
+          .fire(L10n.t2('praise_attendance', {'k': L10n.t(kind.l10nKey)}));
     }
     await _load();
+  }
+
+  /// Mốc hôm nay của loại này đang chờ xác nhận hay không — quyết định có
+  /// hiện nút "Đã chấm công" ngay tại thẻ cấu hình.
+  bool _isPendingToday(AttendanceKind kind) => _todaySlots.any(
+        (slot) => slot.kind == kind && !slot.confirmed,
+      );
+
+  /// Bắn thử đúng thông báo thật (cùng câu, cùng kênh) để kiểm tra end-to-end.
+  Future<void> _testNudge(AttendanceKind kind) async {
+    final error = await ReminderService.instance
+        .sendAttendancePreview(kind, const NudgeService());
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(error == null
+          ? L10n.t('diag_test_sent')
+          : L10n.t2('diag_test_failed', {'e': error})),
+      duration: const Duration(seconds: 6),
+    ));
   }
 
   Future<void> _openOverrideDialog([AttendanceOverride? existing]) async {
@@ -112,6 +149,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           for (final kind in AttendanceKind.values)
             _RuleCard(
               rule: _ruleFor(kind),
+              nextReminderAt: _nextReminders[kind],
+              onTest: () => _testNudge(kind),
+              onConfirmToday: _isPendingToday(kind)
+                  ? () => _setConfirmed(kind, confirmed: true)
+                  : null,
               onToggle: (enabled) =>
                   _saveRule(_ruleFor(kind).copyWith(enabled: enabled)),
               onPickTime: () => _pickRuleTime(_ruleFor(kind)),
@@ -235,12 +277,20 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 class _RuleCard extends StatelessWidget {
   const _RuleCard({
     required this.rule,
+    required this.nextReminderAt,
+    required this.onTest,
+    required this.onConfirmToday,
     required this.onToggle,
     required this.onPickTime,
     required this.onToggleWeekday,
   });
 
   final AttendanceRule rule;
+  final DateTime? nextReminderAt;
+  final VoidCallback onTest;
+
+  /// Null khi mốc hôm nay không còn chờ xác nhận.
+  final VoidCallback? onConfirmToday;
   final ValueChanged<bool> onToggle;
   final VoidCallback onPickTime;
   final Future<void> Function(int weekday) onToggleWeekday;
@@ -248,6 +298,36 @@ class _RuleCard extends StatelessWidget {
   static const List<String> _weekdayLabels = [
     'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN',
   ];
+
+  /// Nói thẳng vì sao mốc này sẽ (hoặc sẽ không) nhắc — nếu không thì việc
+  /// quên bật công tắc trông y hệt lỗi của app.
+  Widget _buildStatusLine() {
+    if (!rule.enabled) {
+      return Text(L10n.t('attendance_status_off'),
+          style: const TextStyle(color: AppColors.danger, fontSize: 12));
+    }
+    if (rule.weekdays.isEmpty) {
+      return Text(L10n.t('attendance_status_no_weekday'),
+          style: const TextStyle(color: AppColors.danger, fontSize: 12));
+    }
+    final next = nextReminderAt;
+    if (next == null) {
+      return Text(L10n.t('attendance_status_none'),
+          style: const TextStyle(color: AppColors.danger, fontSize: 12));
+    }
+    if (next.isBefore(DateTime.now())) {
+      // Cửa sổ nhắc của hôm nay đã mở và mốc chưa được xác nhận.
+      return Text(
+        L10n.t2('attendance_status_active', {'t': formatTime(next)}),
+        style: const TextStyle(
+            color: Colors.orange, fontSize: 12, fontWeight: FontWeight.w600),
+      );
+    }
+    return Text(
+      L10n.t2('attendance_status_next', {'t': formatDateTime(next)}),
+      style: const TextStyle(color: AppColors.success, fontSize: 12),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -288,6 +368,23 @@ class _RuleCard extends StatelessWidget {
                     selected: rule.weekdays.contains(weekday),
                     onSelected: (_) => onToggleWeekday(weekday),
                   ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Row(
+              children: [
+                Expanded(child: _buildStatusLine()),
+                if (onConfirmToday != null)
+                  FilledButton.icon(
+                    onPressed: onConfirmToday,
+                    icon: const Icon(Icons.check, size: 16),
+                    label: Text(L10n.t('attendance_confirm_short')),
+                  ),
+                TextButton.icon(
+                  onPressed: onTest,
+                  icon: const Icon(Icons.notifications_active, size: 16),
+                  label: Text(L10n.t('attendance_test_btn')),
+                ),
               ],
             ),
           ],

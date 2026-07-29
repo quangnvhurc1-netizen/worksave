@@ -68,6 +68,22 @@ enum AppLanguage {
 
 enum QuickCaptureTarget { journal, idea }
 
+/// Giọng của câu nhắc chấm công.
+enum NudgeTone {
+  gentle('gentle', 'tone_gentle'),
+  sassy('sassy', 'tone_sassy'),
+  savage('savage', 'tone_savage');
+
+  const NudgeTone(this.dbValue, this.l10nKey);
+  final String dbValue;
+  final String l10nKey;
+
+  static NudgeTone fromDb(String? raw) => NudgeTone.values.firstWhere(
+        (e) => e.dbValue == raw,
+        orElse: () => NudgeTone.sassy,
+      );
+}
+
 /// Chấm công vào hay ra.
 enum AttendanceKind {
   checkIn('in', 'attendance_in'),

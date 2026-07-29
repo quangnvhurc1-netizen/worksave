@@ -6,8 +6,12 @@ import '../../data/repositories/repositories.dart';
 import '../../domain/enums.dart';
 import '../../domain/models/settings.dart';
 import '../../services/backup_service.dart';
+import '../../services/gemini_service.dart';
+import '../../services/nudge_service.dart';
 import '../../services/l10n.dart';
+import '../../services/user_profile.dart';
 import '../theme.dart';
+import 'reminder_diagnostics_dialog.dart';
 import 'tab_order_dialog.dart';
 
 /// Cài đặt: AI, cách nhắc, review, ngôn ngữ, thứ tự tab, sao lưu.
@@ -20,7 +24,10 @@ class SettingsDialog extends StatefulWidget {
 
 class _SettingsDialogState extends State<SettingsDialog> {
   static const BackupService _backup = BackupService();
+  static const GeminiService _gemini = GeminiService();
+  static const NudgeService _nudges = NudgeService();
 
+  final _userName = TextEditingController();
   final _apiKey = TextEditingController();
   final _model = TextEditingController();
   final _reviewTime = TextEditingController();
@@ -29,6 +36,8 @@ class _SettingsDialogState extends State<SettingsDialog> {
   final _nagMinutes = TextEditingController();
 
   bool _obscureKey = true;
+  bool _testingKey = false;
+  NudgeTone _tone = NudgeTone.sassy;
   bool _loaded = false;
   bool _launchOnStartup = false;
 
@@ -41,6 +50,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
   @override
   void dispose() {
     for (final controller in [
+      _userName,
       _apiKey,
       _model,
       _reviewTime,
@@ -55,9 +65,11 @@ class _SettingsDialogState extends State<SettingsDialog> {
 
   Future<void> _load() async {
     final settings = Repos.settings;
+    _userName.text = await settings.userName();
     _apiKey.text = await settings.geminiApiKey() ?? '';
     _model.text = await settings.geminiModel();
     _reviewTime.text = (await settings.reviewTime()).format();
+    _tone = await settings.nudgeTone();
 
     final reminder = await settings.reminderSettings();
     _dayStart.text = reminder.dayStart.format();
@@ -74,6 +86,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
 
   Future<void> _save() async {
     final settings = Repos.settings;
+    await UserProfile.setName(_userName.text);
     await settings.saveGeminiApiKey(_apiKey.text);
     await settings.saveGeminiModel(_model.text.trim().isEmpty
         ? SettingsRepository.defaultGeminiModel
@@ -187,6 +200,8 @@ class _SettingsDialogState extends State<SettingsDialog> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    _buildProfileSection(),
+                    const Divider(height: 28),
                     _buildAiSection(),
                     const Divider(height: 28),
                     _buildReminderSection(),
@@ -209,6 +224,61 @@ class _SettingsDialogState extends State<SettingsDialog> {
         FilledButton(onPressed: _save, child: Text(L10n.t('save'))),
       ],
     );
+  }
+
+  Widget _buildProfileSection() => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: _userName,
+            decoration: InputDecoration(
+              labelText: L10n.t('user_name'),
+              helperText: L10n.t('user_name_help'),
+              prefixIcon: const Icon(Icons.person_outline),
+              border: const OutlineInputBorder(),
+            ),
+          ),
+        ],
+      );
+
+  /// Gọi thử API: liệt kê model khả dụng cho key này, và nếu model đang chọn
+  /// không nằm trong danh sách thì tự đổi sang model dùng được.
+  Future<void> _testConnection() async {
+    final apiKey = _apiKey.text.trim();
+    if (apiKey.isEmpty) {
+      _toast(L10n.t('api_key_missing'));
+      return;
+    }
+    setState(() => _testingKey = true);
+    try {
+      final models = await _gemini.listModels(apiKey);
+      if (models.isEmpty) {
+        _toast(L10n.t('api_test_no_model'));
+        return;
+      }
+      final current = _model.text.trim();
+      if (!models.contains(current)) {
+        final resolved = await _gemini.resolveUsableModel(apiKey);
+        if (resolved != null) {
+          setState(() => _model.text = resolved);
+          _toast(L10n.t2('api_test_switched', {'m': resolved}));
+          return;
+        }
+      }
+      _toast(L10n.t2('api_test_ok', {'n': '${models.length}', 'm': current}));
+    } on Object catch (error) {
+      _toast(L10n.t2('api_test_fail', {'e': '$error'}));
+    } finally {
+      if (mounted) setState(() => _testingKey = false);
+    }
+  }
+
+  void _toast(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message),
+      duration: const Duration(seconds: 6),
+    ));
   }
 
   Widget _buildAiSection() => Column(
@@ -237,7 +307,22 @@ class _SettingsDialogState extends State<SettingsDialog> {
               border: const OutlineInputBorder(),
             ),
           ),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.sm),
+          Row(
+            children: [
+              OutlinedButton.icon(
+                onPressed: _testingKey ? null : _testConnection,
+                icon: _testingKey
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.wifi_tethering, size: 18),
+                label: Text(L10n.t('api_test_btn')),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
           Text(L10n.t('key_note'),
               style: const TextStyle(fontSize: 12, color: Colors.black54)),
         ],
@@ -295,6 +380,38 @@ class _SettingsDialogState extends State<SettingsDialog> {
               labelText: L10n.t('review_time'),
               helperText: L10n.t('review_time_help'),
               border: const OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Text(L10n.t('nudge_tone'),
+              style: const TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: AppSpacing.xs),
+          Text(L10n.t('nudge_tone_help'),
+              style: const TextStyle(fontSize: 12, color: Colors.black54)),
+          const SizedBox(height: AppSpacing.sm),
+          SegmentedButton<NudgeTone>(
+            segments: [
+              for (final tone in NudgeTone.values)
+                ButtonSegment(value: tone, label: Text(L10n.t(tone.l10nKey))),
+            ],
+            selected: {_tone},
+            onSelectionChanged: (selection) async {
+              final tone = selection.first;
+              setState(() => _tone = tone);
+              await _nudges.setTone(tone);
+              _toast(L10n.t2('nudge_tone_changed', {'t': L10n.t(tone.l10nKey)}));
+            },
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              onPressed: () => showDialog<void>(
+                context: context,
+                builder: (_) => const ReminderDiagnosticsDialog(),
+              ),
+              icon: const Icon(Icons.health_and_safety_outlined, size: 18),
+              label: Text(L10n.t('diag_btn')),
             ),
           ),
           SwitchListTile(

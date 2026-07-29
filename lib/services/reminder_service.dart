@@ -1,14 +1,16 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:local_notifier/local_notifier.dart';
 
+import '../core/clock_time.dart';
 import '../core/date_x.dart';
 import '../data/repositories/repositories.dart';
 import '../domain/enums.dart';
-import '../core/clock_time.dart';
 import '../domain/models/attendance.dart';
 import '../domain/models/reminder.dart';
 import 'l10n.dart';
+import 'nudge_service.dart';
 
 /// Vòng lặp nhắc lịch kiểu báo thức, tách hẳn khỏi widget.
 ///
@@ -21,15 +23,27 @@ class ReminderService {
 
   static const Duration _tickInterval = Duration(seconds: 30);
 
+  static const NudgeService _nudges = NudgeService();
+
   final StreamController<List<DueReminder>> _controller =
       StreamController<List<DueReminder>>.broadcast();
   Timer? _timer;
+
+  /// Nhật ký chạy, để màn hình Chẩn đoán biết vòng lặp có sống không.
+  /// Trước đây lỗi bị nuốt nên hỏng là im hẳn, không có manh mối nào.
+  DateTime? lastRunAt;
+  DateTime? lastFiredAt;
+  int lastFiredCount = 0;
+  String? lastError;
+
+  bool get isRunning => _timer != null;
 
   /// UI lắng nghe để hiện snackbar; không bắt buộc phải nghe.
   Stream<List<DueReminder>> get onRemindersFired => _controller.stream;
 
   void start() {
     if (_timer != null) return;
+    unawaited(_nudges.prime().then((_) => _nudges.refreshIfStale()));
     unawaited(_check());
     _timer = Timer.periodic(_tickInterval, (_) => unawaited(_check()));
   }
@@ -40,14 +54,66 @@ class ReminderService {
   }
 
   Future<void> _check() async {
-    final settings = await Repos.settings.reminderSettings();
-    await _checkSchedules(settings.nagInterval.inMinutes);
-    await _checkAttendance(settings.nagInterval.inMinutes);
+    try {
+      final settings = await Repos.settings.reminderSettings();
+      final scheduleCount =
+          await _checkSchedules(settings.nagInterval.inMinutes);
+      final attendanceCount =
+          await _checkAttendance(settings.nagInterval.inMinutes);
+
+      lastRunAt = DateTime.now();
+      lastError = null;
+      final fired = scheduleCount + attendanceCount;
+      if (fired > 0) {
+        lastFiredAt = lastRunAt;
+        lastFiredCount = fired;
+      }
+    } on Object catch (error, stack) {
+      // Ghi lại thay vì để lỗi biến mất — một tick hỏng không được làm câm
+      // toàn bộ tính năng nhắc.
+      lastRunAt = DateTime.now();
+      lastError = '$error';
+      assert(() {
+        debugPrint('ReminderService tick failed: $error\n$stack');
+        return true;
+      }());
+    }
   }
 
-  Future<void> _checkSchedules(int nagMinutes) async {
+  /// Bắn thử đúng thông báo chấm công thật (cùng câu nhắc, cùng kênh) để
+  /// kiểm tra toàn tuyến mà không phải ngồi đợi tới giờ.
+  Future<String?> sendAttendancePreview(
+      AttendanceKind kind, NudgeService nudges) async {
+    try {
+      final settings = await Repos.settings.reminderSettings();
+      final line = nudges.attendanceLine(kind, -1);
+      LocalNotification(
+        title: L10n.t('attendance_notif_title'),
+        body: '$line\n${L10n.t(kind.l10nKey)}\n'
+            '${L10n.t2('notif_repeat', {'n': '${settings.nagInterval.inMinutes}'})}',
+      ).show();
+      return null;
+    } on Object catch (error) {
+      return '$error';
+    }
+  }
+
+  /// Bắn một thông báo thử để kiểm tra kênh thông báo của Windows.
+  Future<String?> sendTestNotification() async {
+    try {
+      LocalNotification(
+        title: L10n.t('diag_test_title'),
+        body: L10n.t('diag_test_body'),
+      ).show();
+      return null;
+    } on Object catch (error) {
+      return '$error';
+    }
+  }
+
+  Future<int> _checkSchedules(int nagMinutes) async {
     final due = await Repos.schedules.dueReminders();
-    if (due.isEmpty) return;
+    if (due.isEmpty) return 0;
 
     for (final reminder in due) {
       _notify(reminder, nagMinutes);
@@ -55,34 +121,27 @@ class ReminderService {
       if (id != null) await Repos.schedules.markNotified(id);
     }
     if (!_controller.isClosed) _controller.add(due);
+    return due.length;
   }
 
-  Future<void> _checkAttendance(int nagMinutes) async {
+  Future<int> _checkAttendance(int nagMinutes) async {
     final due = await Repos.attendance.dueReminders();
     for (final slot in due) {
-      _notifyAttendance(slot, nagMinutes);
+      await _notifyAttendance(slot, nagMinutes);
       await Repos.attendance.markNotified(slot.dueAt, slot.kind);
     }
+    return due.length;
   }
 
-  void _notifyAttendance(AttendanceSlot slot, int nagMinutes) {
+  Future<void> _notifyAttendance(AttendanceSlot slot, int nagMinutes) async {
     final minutesLeft = slot.dueAt.difference(DateTime.now()).inMinutes;
-    final String headline;
-    if (minutesLeft > 0) {
-      headline = L10n.t2('notif_early', {'n': '$minutesLeft'});
-    } else if (minutesLeft < 0) {
-      headline = L10n.t2('notif_overdue', {'n': '${-minutesLeft}'});
-    } else {
-      headline = L10n.t('notif_now');
-    }
-
+    final line = _nudges.attendanceLine(slot.kind, minutesLeft);
     final time = ClockTime.fromDateTime(slot.dueAt).format();
-    final what = L10n.t(slot.kind.l10nKey);
     final repeat = L10n.t2('notif_repeat', {'n': '$nagMinutes'});
 
     LocalNotification(
       title: L10n.t('attendance_notif_title'),
-      body: '$headline\n$time — $what\n$repeat',
+      body: '$line\n$time — ${L10n.t(slot.kind.l10nKey)}\n$repeat',
     ).show();
   }
 

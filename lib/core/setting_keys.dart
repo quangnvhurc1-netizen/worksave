@@ -1,6 +1,13 @@
 /// Toàn bộ khóa của bảng `settings` — gom một chỗ để không rải chuỗi rời rạc.
 abstract final class SettingKeys {
   static const String language = 'language';
+  static const String userName = 'user_name';
+
+  // Kho câu nhắc do AI sinh
+  static const String nudgePool = 'nudge_pool';
+  static const String nudgePoolDate = 'nudge_pool_date';
+  static const String nudgePoolTone = 'nudge_pool_tone';
+  static const String nudgeTone = 'nudge_tone';
   static const String tabOrder = 'tab_order';
 
   // Nhắc lịch

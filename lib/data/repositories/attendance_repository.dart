@@ -102,4 +102,44 @@ class AttendanceRepository {
 
   Future<void> markNotified(DateTime date, AttendanceKind kind) =>
       _dao.markNotified(date.dateOnly, kind);
+
+  /// Lần nhắc kế tiếp của một lịch lặp: mốc tới hạn gần nhất trong 14 ngày
+  /// tới, đã trừ thời gian báo trước. Null nghĩa là sẽ không bao giờ nhắc
+  /// (đang tắt, hoặc không chọn thứ nào).
+  Future<DateTime?> nextReminderFor(AttendanceRule rule) async {
+    if (!rule.enabled || rule.weekdays.isEmpty) return null;
+    final settings = await _settings.reminderSettings();
+    final now = DateTime.now();
+
+    for (var offset = 0; offset <= 14; offset++) {
+      final day = now.add(Duration(days: offset)).dateOnly;
+      if (!rule.weekdays.contains(day.weekday)) continue;
+
+      // Ngoại lệ của ngày đó thắng lịch lặp.
+      final overrides = await _dao.overridesOn(day);
+      final override =
+          overrides.where((o) => o.kind == rule.kind).firstOrNull;
+      if (override != null && override.skipsReminder) continue;
+
+      final dueAt = (override?.time ?? rule.time).onDate(day);
+      final firesAt = dueAt.subtract(settings.leadTime);
+
+      if (offset == 0) {
+        // Hôm nay: mốc chưa xác nhận thì vẫn tính, kể cả đã qua giờ — nó
+        // đang được nhắc lặp lại chứ không phải đã xong.
+        final state = await _dao.stateOf(day, rule.kind);
+        if (state?['confirmed_at'] == null) return firesAt;
+        continue;
+      }
+      if (firesAt.isAfter(now)) return firesAt;
+    }
+    return null;
+  }
+
+  /// Đổi giờ của một mốc thì bỏ dấu "vừa nhắc" của hôm nay, để mốc mới được
+  /// nhắc ngay thay vì phải đợi hết chu kỳ của giờ cũ.
+  Future<void> saveRuleAndResetToday(AttendanceRule rule) async {
+    await _dao.upsertRule(rule);
+    await _dao.clearNotified(DateTime.now().dateOnly, rule.kind);
+  }
 }

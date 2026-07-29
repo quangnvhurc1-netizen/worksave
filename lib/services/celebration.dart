@@ -2,27 +2,27 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 
-/// Cơ chế reward: nơi nào có thành tích thì gọi Celebration.instance.fire(),
-/// HomeScreen lắng nghe và bắn pháo hoa + banner chúc mừng.
+import 'l10n.dart';
+import 'user_profile.dart';
+
+/// Phát tín hiệu chúc mừng; [CelebrationOverlay] lắng nghe để bắn pháo hoa.
+///
+/// Câu khen được lấy ngẫu nhiên từ bộ dịch nên đổi ngôn ngữ là đổi theo, và
+/// có xưng tên nếu người dùng đã đặt tên trong Settings.
 class Celebration {
   Celebration._();
   static final Celebration instance = Celebration._();
 
-  final ValueNotifier<String?> message = ValueNotifier<String?>(null);
-  final Random _rng = Random();
+  static const int cheerCount = 6;
 
-  static const List<String> _praises = [
-    '🎉 Giỏi quá!',
-    '🔥 Quá đỉnh!',
-    '🏆 Tuyệt vời!',
-    '💪 Chiến thần năng suất!',
-    '🚀 Cứ đà này thì sếp phải dè chừng!',
-    '⭐ Xuất sắc!',
-    '🎊 Một chiến thắng nữa!',
-  ];
+  final ValueNotifier<String?> message = ValueNotifier<String?>(null);
+  final Random _random = Random();
 
   void fire(String what) {
-    message.value = '${_praises[_rng.nextInt(_praises.length)]} $what';
+    final cheer = L10n.t2('cheer_${_random.nextInt(cheerCount) + 1}', {
+      'name': UserProfile.hasName ? UserProfile.name.value.trim() : '',
+    });
+    message.value = '${cheer.replaceAll('  ', ' ').trim()} $what';
   }
 
   void clear() => message.value = null;

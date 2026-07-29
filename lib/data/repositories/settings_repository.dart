@@ -98,6 +98,39 @@ class SettingsRepository {
   Future<void> saveTabOrder(List<AppTab> tabs) =>
       _write(SettingKeys.tabOrder, tabs.map((t) => t.id).join(','));
 
+  // ---- Cá nhân hóa ----
+  Future<String> userName() async =>
+      (await _read(SettingKeys.userName))?.trim() ?? '';
+
+  Future<void> saveUserName(String name) =>
+      _write(SettingKeys.userName, name.trim());
+
+  // ---- Kho câu nhắc ----
+  Future<NudgeTone> nudgeTone() async =>
+      NudgeTone.fromDb(await _read(SettingKeys.nudgeTone));
+
+  Future<void> saveNudgeTone(NudgeTone tone) =>
+      _write(SettingKeys.nudgeTone, tone.dbValue);
+
+  /// Giọng của kho câu đang lưu — khác giọng đang chọn thì phải sinh lại.
+  Future<NudgeTone?> nudgePoolTone() async {
+    final raw = await _read(SettingKeys.nudgePoolTone);
+    return raw == null ? null : NudgeTone.fromDb(raw);
+  }
+
+  Future<String?> nudgePoolJson() => _read(SettingKeys.nudgePool);
+
+  Future<DateTime?> nudgePoolDate() async {
+    final raw = await _read(SettingKeys.nudgePoolDate);
+    return raw == null ? null : DateTime.tryParse(raw);
+  }
+
+  Future<void> saveNudgePool(String json, NudgeTone tone) async {
+    await _write(SettingKeys.nudgePool, json);
+    await _write(SettingKeys.nudgePoolTone, tone.dbValue);
+    await _write(SettingKeys.nudgePoolDate, DateTime.now().toIso8601String());
+  }
+
   // ---- Gemini ----
   Future<String?> geminiApiKey() => _read(SettingKeys.geminiApiKey);
   Future<void> saveGeminiApiKey(String key) =>
@@ -126,6 +159,6 @@ class SettingsRepository {
   Future<bool> isFridaySummaryGeneratedToday() async =>
       await _read(SettingKeys.fridaySummaryDate) == DateTime.now().toIsoDate();
 
-  static const String defaultGeminiModel = 'gemini-2.5-flash';
-  static const String fallbackGeminiModel = 'gemini-2.5-flash-lite';
+  static const String defaultGeminiModel = 'gemini-3.6-flash';
+  static const String fallbackGeminiModel = 'gemini-3.6-flash-lite';
 }
