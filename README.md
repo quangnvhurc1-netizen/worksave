@@ -12,6 +12,7 @@ App Flutter Windows đơn giản, dữ liệu lưu SQLite local (không cần se
 | **Ý tưởng** | Ghi nhanh ý tưởng, sửa/xóa được. Ý tưởng nào chín thì bấm nút ✓ để chuyển thẳng thành Task. |
 | **Nhật ký** | Ghi lại suy nghĩ tự do theo ngày ("đang nghĩ gì"), khác với log của task ("đã làm gì"). |
 | **Lịch** | Lịch lưới tháng kiểu Outlook: mỗi ngày 1 ô, việc hiện ngay trong ô (kèm giờ nếu có). Mỗi mục có nút bật/tắt nhắc riêng. Điều hướng tháng trước/sau không giới hạn, nút "Hôm nay", bấm vào tên tháng để nhảy nhanh. Bấm vào ô ngày để thêm/sửa/xóa việc. Tới ngày, app bật notification Windows (khi app đang mở). |
+| **Chấm công** | Nhắc giờ chấm công vào/ra. Đặt giờ riêng cho từng mốc, chọn áp dụng những thứ nào trong tuần, bật/tắt độc lập. Hôm OT thì thêm ngoại lệ cho đúng ngày đó (hoặc đặt "không nhắc" khi nghỉ phép). Xác nhận "đã chấm công" thì ngừng nhắc. |
 | **Báo cáo** | Gom nhật ký các task trong tuần → sinh sẵn 1 prompt, copy dán vào AI để ra báo cáo đúng format `-Ngày .../.../...: "..."`. Cảnh báo các task chưa Done. |
 
 Nhắc task chưa Done: banner cam hiện ngay khi mở app nếu còn task chưa chuyển sang Done.
@@ -117,6 +118,22 @@ File chạy nằm ở: `build\windows\x64\runner\Release\worksave.exe`
 
 SQLite tại `%APPDATA%\com.example\worksave\worksave.db` (thư mục Application Support).
 Backup = copy file này.
+
+## Nhắc chấm công (v1.1)
+
+Hai lớp cấu hình, ngoại lệ luôn thắng lịch mặc định:
+
+1. **Giờ hằng ngày** — mỗi mốc (vào / ra) có giờ riêng, chọn được áp dụng thứ
+   nào trong tuần, và có công tắc bật/tắt độc lập. Mặc định gợi ý 07:30 và
+   17:00 cho T2–T6 nhưng **để TẮT**, để app không tự bắn thông báo sai giờ —
+   vào tab Chấm công chỉnh giờ rồi bật lên.
+2. **Ngoại lệ theo ngày** — hôm OT thì thêm một mốc riêng cho đúng ngày đó
+   (ví dụ 21/07 chấm ra lúc 20:00, kèm ghi chú). Bật "Hôm đó không nhắc" khi
+   nghỉ phép hoặc đi công tác.
+
+Cách nhắc dùng chung tham số với lịch: báo trước N phút, lặp mỗi M phút
+(Settings ⚙ → *Cách nhắc lịch*), và **chỉ dừng khi bạn bấm xác nhận đã chấm
+công** cho mốc đó trong ngày. Sang ngày mới trạng thái tự reset.
 
 ## Cách nhắc lịch (v8)
 

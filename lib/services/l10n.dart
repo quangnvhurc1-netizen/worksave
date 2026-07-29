@@ -230,6 +230,35 @@ class L10n {
     'praise_review_done': 'Hoàn thành {n} task hôm nay — nghỉ ngơi xứng đáng!',
     'praise_review_log': 'Đã chốt sổ hôm nay với {n} dòng nhật ký!',
 
+    // Chấm công
+    'tab_attendance': 'Chấm công',
+    'attendance_title': 'Nhắc chấm công',
+    'attendance_hint':
+        'Đặt giờ nhắc chấm công hằng ngày, bật/tắt bất cứ lúc nào. Hôm nào OT thì thêm ngoại lệ cho riêng ngày đó.',
+    'attendance_in': 'Chấm công vào',
+    'attendance_out': 'Chấm công ra',
+    'attendance_today': 'Hôm nay',
+    'attendance_none_today':
+        'Hôm nay không có mốc chấm công nào (đã tắt, không đúng thứ, hoặc đã đặt nghỉ).',
+    'attendance_pending': 'Chưa xác nhận — sẽ nhắc tới khi bạn bấm xác nhận',
+    'attendance_done': 'Đã chấm công ✓',
+    'attendance_confirm': 'Xác nhận đã chấm công',
+    'attendance_undo': 'Bỏ xác nhận',
+    'attendance_ot_tag': 'ngoại lệ',
+    'attendance_daily_section': 'Giờ nhắc hằng ngày',
+    'attendance_override_section': 'Ngoại lệ theo ngày (OT / nghỉ)',
+    'attendance_override_hint':
+        'Ngoại lệ đè lên giờ mặc định của đúng ngày đó — dùng khi OT hoặc nghỉ phép.',
+    'attendance_no_override': 'Chưa có ngoại lệ nào sắp tới.',
+    'attendance_add_override': 'Thêm ngoại lệ',
+    'attendance_override_title': 'Ngoại lệ chấm công cho một ngày',
+    'attendance_skip': 'Không nhắc',
+    'attendance_skip_title': 'Hôm đó không nhắc',
+    'attendance_skip_sub': 'Dùng khi nghỉ phép, đi công tác',
+    'attendance_note': 'Ghi chú (VD: OT nghiệm thu tuyến)',
+    'attendance_notif_title': 'WorkSave — Chấm công',
+    'praise_attendance': 'Đã {k}!',
+
     // Settings
     'settings_title': 'Cài đặt',
     'api_key': 'Google AI Studio API key',
@@ -476,6 +505,35 @@ class L10n {
     'praise_pomodoro': 'That\'s one {m}-minute pomodoro done!',
     'praise_review_done': 'Closed out {n} task(s) today — well earned rest!',
     'praise_review_log': 'Day wrapped up with {n} log line(s)!',
+
+    // Attendance
+    'tab_attendance': 'Attendance',
+    'attendance_title': 'Attendance reminders',
+    'attendance_hint':
+        'Set your daily clock-in/out reminder times and toggle them any time. Working overtime? Add a one-off override for that day.',
+    'attendance_in': 'Clock in',
+    'attendance_out': 'Clock out',
+    'attendance_today': 'Today',
+    'attendance_none_today':
+        'Nothing scheduled today (turned off, wrong weekday, or set as a day off).',
+    'attendance_pending': 'Not confirmed — reminders continue until you confirm',
+    'attendance_done': 'Clocked ✓',
+    'attendance_confirm': 'Confirm clocked',
+    'attendance_undo': 'Undo confirmation',
+    'attendance_ot_tag': 'override',
+    'attendance_daily_section': 'Daily reminder times',
+    'attendance_override_section': 'Per-day overrides (overtime / days off)',
+    'attendance_override_hint':
+        'An override replaces the default time on that day — use it for overtime or leave.',
+    'attendance_no_override': 'No upcoming overrides.',
+    'attendance_add_override': 'Add override',
+    'attendance_override_title': 'Attendance override for one day',
+    'attendance_skip': 'No reminder',
+    'attendance_skip_title': 'No reminder that day',
+    'attendance_skip_sub': 'For leave or off-site days',
+    'attendance_note': 'Note (e.g. overtime for line testing)',
+    'attendance_notif_title': 'WorkSave — Attendance',
+    'praise_attendance': '{k} done!',
 
     'settings_title': 'Settings',
     'api_key': 'Google AI Studio API key',

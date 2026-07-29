@@ -5,6 +5,8 @@ import 'package:local_notifier/local_notifier.dart';
 import '../core/date_x.dart';
 import '../data/repositories/repositories.dart';
 import '../domain/enums.dart';
+import '../core/clock_time.dart';
+import '../domain/models/attendance.dart';
 import '../domain/models/reminder.dart';
 import 'l10n.dart';
 
@@ -38,16 +40,50 @@ class ReminderService {
   }
 
   Future<void> _check() async {
+    final settings = await Repos.settings.reminderSettings();
+    await _checkSchedules(settings.nagInterval.inMinutes);
+    await _checkAttendance(settings.nagInterval.inMinutes);
+  }
+
+  Future<void> _checkSchedules(int nagMinutes) async {
     final due = await Repos.schedules.dueReminders();
     if (due.isEmpty) return;
 
-    final settings = await Repos.settings.reminderSettings();
     for (final reminder in due) {
-      _notify(reminder, settings.nagInterval.inMinutes);
+      _notify(reminder, nagMinutes);
       final id = reminder.item.id;
       if (id != null) await Repos.schedules.markNotified(id);
     }
     if (!_controller.isClosed) _controller.add(due);
+  }
+
+  Future<void> _checkAttendance(int nagMinutes) async {
+    final due = await Repos.attendance.dueReminders();
+    for (final slot in due) {
+      _notifyAttendance(slot, nagMinutes);
+      await Repos.attendance.markNotified(slot.dueAt, slot.kind);
+    }
+  }
+
+  void _notifyAttendance(AttendanceSlot slot, int nagMinutes) {
+    final minutesLeft = slot.dueAt.difference(DateTime.now()).inMinutes;
+    final String headline;
+    if (minutesLeft > 0) {
+      headline = L10n.t2('notif_early', {'n': '$minutesLeft'});
+    } else if (minutesLeft < 0) {
+      headline = L10n.t2('notif_overdue', {'n': '${-minutesLeft}'});
+    } else {
+      headline = L10n.t('notif_now');
+    }
+
+    final time = ClockTime.fromDateTime(slot.dueAt).format();
+    final what = L10n.t(slot.kind.l10nKey);
+    final repeat = L10n.t2('notif_repeat', {'n': '$nagMinutes'});
+
+    LocalNotification(
+      title: L10n.t('attendance_notif_title'),
+      body: '$headline\n$time — $what\n$repeat',
+    ).show();
   }
 
   void _notify(DueReminder reminder, int nagMinutes) {

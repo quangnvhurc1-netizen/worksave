@@ -68,6 +68,21 @@ enum AppLanguage {
 
 enum QuickCaptureTarget { journal, idea }
 
+/// Chấm công vào hay ra.
+enum AttendanceKind {
+  checkIn('in', 'attendance_in'),
+  checkOut('out', 'attendance_out');
+
+  const AttendanceKind(this.dbValue, this.l10nKey);
+  final String dbValue;
+  final String l10nKey;
+
+  static AttendanceKind fromDb(String? raw) => AttendanceKind.values.firstWhere(
+        (e) => e.dbValue == raw,
+        orElse: () => AttendanceKind.checkIn,
+      );
+}
+
 /// Các tab của app. Thứ tự hiển thị do người dùng cấu hình, nhưng id thì cố định.
 enum AppTab {
   tasks('tasks'),
@@ -76,6 +91,7 @@ enum AppTab {
   ideas('ideas'),
   journal('journal'),
   schedule('schedule'),
+  attendance('attendance'),
   report('report');
 
   const AppTab(this.id);

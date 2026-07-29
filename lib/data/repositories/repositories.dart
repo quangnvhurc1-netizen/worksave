@@ -2,6 +2,7 @@
 /// và có thể thay bằng bản giả khi viết test.
 library;
 
+import 'attendance_repository.dart';
 import 'backup_repository.dart';
 import 'note_repository.dart';
 import 'pomodoro_repository.dart';
@@ -10,6 +11,7 @@ import 'search_repository.dart';
 import 'settings_repository.dart';
 import 'task_repository.dart';
 
+export 'attendance_repository.dart';
 export 'backup_repository.dart';
 export 'note_repository.dart';
 export 'pomodoro_repository.dart';
@@ -28,4 +30,5 @@ class Repos {
   static SettingsRepository settings = const SettingsRepository();
   static SearchRepository search = const SearchRepository();
   static BackupRepository backup = const BackupRepository();
+  static AttendanceRepository attendance = const AttendanceRepository();
 }

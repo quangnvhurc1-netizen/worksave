@@ -36,6 +36,7 @@ class _TabOrderDialogState extends State<TabOrderDialog> {
         AppTab.ideas => Icons.lightbulb_outline,
         AppTab.journal => Icons.edit_note,
         AppTab.schedule => Icons.calendar_month,
+        AppTab.attendance => Icons.fingerprint,
         AppTab.report => Icons.summarize,
       };
 

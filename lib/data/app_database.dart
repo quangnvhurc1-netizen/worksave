@@ -10,7 +10,7 @@ class AppDatabase {
   AppDatabase._();
   static final AppDatabase instance = AppDatabase._();
 
-  static const int schemaVersion = 6;
+  static const int schemaVersion = 7;
 
   /// Tên mọi bảng, dùng cho sao lưu / khôi phục.
   static const List<String> tables = [
@@ -22,6 +22,9 @@ class AppDatabase {
     'schedules',
     'journal',
     'pomodoro',
+    'attendance_rules',
+    'attendance_overrides',
+    'attendance_state',
   ];
 
   Database? _db;
@@ -67,7 +70,56 @@ class AppDatabase {
         await _addTimeAndPomodoro(db);
       case 6:
         await _splitDeadlineIntoDateAndTime(db);
+      case 7:
+        await _addAttendance(db);
     }
+  }
+
+  /// Nhắc chấm công: lịch lặp hằng tuần, ngoại lệ theo ngày (OT / nghỉ),
+  /// và trạng thái đã nhắc / đã xác nhận của từng ngày.
+  Future<void> _addAttendance(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS attendance_rules(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        kind TEXT NOT NULL UNIQUE,
+        time TEXT NOT NULL,
+        weekdays TEXT NOT NULL,
+        enabled INTEGER DEFAULT 0
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS attendance_overrides(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        date TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        time TEXT,
+        note TEXT DEFAULT '',
+        UNIQUE(date, kind)
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS attendance_state(
+        date TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        last_notified_at TEXT,
+        confirmed_at TEXT,
+        PRIMARY KEY(date, kind)
+      )
+    ''');
+
+    // Giờ gợi ý sẵn nhưng TẮT, để app không tự bắn thông báo sai giờ.
+    await db.insert('attendance_rules', {
+      'kind': 'in',
+      'time': '07:30',
+      'weekdays': '1,2,3,4,5',
+      'enabled': 0,
+    });
+    await db.insert('attendance_rules', {
+      'kind': 'out',
+      'time': '17:00',
+      'weekdays': '1,2,3,4,5',
+      'enabled': 0,
+    });
   }
 
   Future<void> _createInitial(Database db) async {

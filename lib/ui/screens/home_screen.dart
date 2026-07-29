@@ -22,6 +22,7 @@ import '../dialogs/settings_dialog.dart';
 import '../theme.dart';
 import '../widgets/celebration_overlay.dart';
 import '../widgets/unfinished_banner.dart';
+import 'attendance_screen.dart';
 import 'ideas_screen.dart';
 import 'journal_screen.dart';
 import 'pomodoro_screen.dart';
@@ -246,6 +247,7 @@ class _HomeScreenState extends State<HomeScreen>
         AppTab.ideas => const IdeasScreen(),
         AppTab.journal => const JournalScreen(),
         AppTab.schedule => const ScheduleScreen(),
+        AppTab.attendance => const AttendanceScreen(),
         AppTab.report => const ReportScreen(),
       };
 
@@ -341,6 +343,7 @@ class _HomeScreenState extends State<HomeScreen>
         AppTab.ideas => Icons.lightbulb_outline,
         AppTab.journal => Icons.edit_note,
         AppTab.schedule => Icons.calendar_month,
+        AppTab.attendance => Icons.fingerprint,
         AppTab.report => Icons.summarize,
       };
 }
