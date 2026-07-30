@@ -56,6 +56,21 @@ class ScheduleDao {
     return rows.map(fromRow).toList();
   }
 
+  /// Chỉ lấy mục trong khoảng ngày — lưới lịch mỗi lần chỉ cần 6 tuần.
+  Future<List<ScheduleItem>> findBetween(DateTime from, DateTime to) async {
+    final rows = await (await _db).query('schedules',
+        where: 'date >= ? AND date <= ?',
+        whereArgs: [from.toIsoDate(), to.toIsoDate()],
+        orderBy: 'date ASC');
+    return rows.map(fromRow).toList();
+  }
+
+  Future<List<ScheduleItem>> findOnDate(DateTime date) async {
+    final rows = await (await _db)
+        .query('schedules', where: 'date = ?', whereArgs: [date.toIsoDate()]);
+    return rows.map(fromRow).toList();
+  }
+
   Future<ScheduleItem?> findByTask(int taskId) async {
     final rows = await (await _db)
         .query('schedules', where: 'task_id = ?', whereArgs: [taskId]);

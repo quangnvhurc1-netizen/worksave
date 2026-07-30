@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../core/date_x.dart';
@@ -24,7 +26,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   static const int _daysPerWeek = 7;
 
   late DateTime _month;
-  List<ScheduleItem> _items = const [];
+
+  /// Dữ liệu đã gom sẵn theo ngày và lưới 42 ô, tính một lần mỗi khi tải hoặc
+  /// đổi tháng — build chỉ việc vẽ.
+  Map<String, List<ScheduleItem>> _itemsByDate = const {};
+  List<DateTime> _gridDays = const [];
   ReminderSettings _reminder = ReminderSettings.defaults;
 
   @override
@@ -35,45 +41,38 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     _load();
   }
 
-  Future<void> _load() async {
-    final items = await Repos.schedules.all();
-    final reminder = await Repos.settings.reminderSettings();
-    if (!mounted) return;
-    setState(() {
-      _items = items;
-      _reminder = reminder;
-    });
-  }
-
-  Map<String, List<ScheduleItem>> get _itemsByDate {
-    final grouped = <String, List<ScheduleItem>>{};
-    for (final item in _items) {
-      grouped.putIfAbsent(item.date.toIsoDate(), () => []).add(item);
-    }
-    for (final list in grouped.values) {
-      list.sort((a, b) => a
-          .dueAt(_reminder.dayStart)
-          .compareTo(b.dueAt(_reminder.dayStart)));
-    }
-    return grouped;
-  }
-
   /// 42 ô bắt đầu từ thứ 2 của tuần chứa ngày 1.
-  List<DateTime> get _gridDays {
-    final start = _month.mondayOfWeek;
+  static List<DateTime> _buildGrid(DateTime month) {
+    final start = month.mondayOfWeek;
     return List.generate(
       _weeksShown * _daysPerWeek,
       (index) => DateTime(start.year, start.month, start.day + index),
     );
   }
 
-  void _shiftMonth(int delta) =>
-      setState(() => _month = DateTime(_month.year, _month.month + delta));
-
-  void _goToToday() {
-    final now = DateTime.now();
-    setState(() => _month = DateTime(now.year, now.month));
+  /// Chỉ tải đúng khoảng ngày đang hiển thị, không nạp cả bảng lịch.
+  Future<void> _load() async {
+    final reminder = await Repos.settings.reminderSettings();
+    final days = _buildGrid(_month);
+    final grouped = await Repos.schedules
+        .groupedBetween(days.first, days.last, reminder.dayStart);
+    if (!mounted) return;
+    setState(() {
+      _reminder = reminder;
+      _gridDays = days;
+      _itemsByDate = grouped;
+    });
   }
+
+  void _goToMonth(DateTime month) {
+    setState(() => _month = DateTime(month.year, month.month));
+    unawaited(_load());
+  }
+
+  void _shiftMonth(int delta) =>
+      _goToMonth(DateTime(_month.year, _month.month + delta));
+
+  void _goToToday() => _goToMonth(DateTime.now());
 
   Future<void> _pickMonth() async {
     final picked = await showDatePicker(
@@ -84,7 +83,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       helpText: L10n.t('jump_month'),
     );
     if (picked == null) return;
-    setState(() => _month = DateTime(picked.year, picked.month));
+    _goToMonth(picked);
   }
 
   Future<void> _openDay(DateTime date) async {
@@ -100,6 +99,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     final grouped = _itemsByDate;
     final days = _gridDays;
     final today = DateTime.now();
+    if (days.isEmpty) return const Center(child: CircularProgressIndicator());
 
     return Column(
       children: [

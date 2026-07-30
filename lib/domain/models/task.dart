@@ -63,6 +63,22 @@ class Task {
 
   bool get hasBlocker => blocker.trim().isNotEmpty;
 
+  /// Gắn id sau khi insert, thay vì phải đọc lại bản ghi từ DB.
+  Task withId(int value) => Task(
+        id: value,
+        title: title,
+        description: description,
+        context: context,
+        blocker: blocker,
+        direction: direction,
+        status: status,
+        deadline: deadline,
+        remindDeadline: remindDeadline,
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+        doneAt: doneAt,
+      );
+
   Task copyWith({
     String? title,
     String? description,

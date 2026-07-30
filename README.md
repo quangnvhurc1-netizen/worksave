@@ -91,6 +91,27 @@ vào bất cứ tầng nào khác.
 - **`analysis_options.yaml`** bật `strict-casts`, `strict-inference`,
   `strict-raw-types` cùng bộ lint bổ sung.
 
+## Tối ưu hiệu năng (v1.6)
+
+Bốn điểm nghẽn được xử lý, đo bằng số truy vấn SQLite:
+
+| Chỗ | Trước | Sau |
+|---|---|---|
+| Mỗi nhịp nhắc (30 giây) chỉ để đọc cấu hình | ~9 truy vấn | **0** (đệm trong bộ nhớ) |
+| Tìm "lần nhắc kế tiếp" của 1 mốc chấm công | tới 15 truy vấn (mỗi ngày 1) | **2** (1 truy vấn khoảng ngày) |
+| Mở lưới lịch tháng | nạp **toàn bộ** bảng lịch | **1** truy vấn 6 tuần đang xem |
+| Tạo task mới | 2 truy vấn (insert + đọc lại) | **1** |
+
+Ngoài ra:
+
+- **10 index** cho các cột luôn nằm trong WHERE/ORDER BY (`schedules.date`,
+  `work_logs.task_id`, `work_logs.log_date`, `tasks.status`, `tasks.updated_at`,
+  `pomodoro.finished_at`, …) — migration v8. Trước đây mỗi nhịp nhắc phải quét
+  toàn bảng, dữ liệu tích lũy vài năm là thấy chậm.
+- **Lưới lịch không tính lại trong `build`**: việc gom theo ngày và sắp theo giờ
+  chuyển sang lúc tải/đổi tháng; `build` chỉ vẽ.
+- Đệm settings tự xoá khi khôi phục backup, để không đọc dữ liệu cũ.
+
 ## Cài đặt & chạy (Windows)
 
 Yêu cầu: Flutter SDK (bản stable), Visual Studio với workload "Desktop development with C++".

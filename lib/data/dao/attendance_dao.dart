@@ -60,6 +60,17 @@ class AttendanceDao {
     return rows.map(_overrideFromRow).toList();
   }
 
+  /// Ngoại lệ trong một khoảng ngày — dùng khi cần dò nhiều ngày liền, để
+  /// không phải truy vấn từng ngày một.
+  Future<List<AttendanceOverride>> overridesBetween(
+      DateTime from, DateTime to) async {
+    final rows = await (await _db).query('attendance_overrides',
+        where: 'date >= ? AND date <= ?',
+        whereArgs: [from.toIsoDate(), to.toIsoDate()],
+        orderBy: 'date ASC');
+    return rows.map(_overrideFromRow).toList();
+  }
+
   Future<List<AttendanceOverride>> overridesFrom(DateTime from) async {
     final rows = await (await _db).query('attendance_overrides',
         where: 'date >= ?', whereArgs: [from.toIsoDate()], orderBy: 'date ASC');

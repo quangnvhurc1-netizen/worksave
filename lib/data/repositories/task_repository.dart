@@ -28,10 +28,9 @@ class TaskRepository {
 
   /// Tạo task rồi đẩy deadline (nếu có) sang lịch.
   Future<Task> create(Task task) async {
-    final id = await _tasks.insert(task);
-    final saved = await _tasks.findById(id);
-    if (saved != null) await syncScheduleFor(saved);
-    return saved ?? task;
+    final saved = task.withId(await _tasks.insert(task));
+    await syncScheduleFor(saved);
+    return saved;
   }
 
   /// Cập nhật task và đồng bộ lại mục lịch tương ứng.

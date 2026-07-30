@@ -1,8 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -11,7 +9,9 @@ import '../../data/repositories/repositories.dart';
 import '../../domain/enums.dart';
 import '../../domain/models/notes.dart';
 import '../../domain/models/task.dart';
+import '../../services/hotkey_service.dart';
 import '../../services/l10n.dart';
+import '../../services/notification_center.dart';
 import '../../services/reminder_service.dart';
 import '../../services/tab_order_service.dart';
 import '../dialogs/quick_capture_dialog.dart';
@@ -129,18 +129,15 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Future<void> _registerHotkey() async {
-    try {
-      await hotKeyManager.register(
-        HotKey(
-          key: PhysicalKeyboardKey.space,
-          modifiers: const [HotKeyModifier.control, HotKeyModifier.shift],
-          scope: HotKeyScope.system,
-        ),
-        keyDownHandler: (_) => unawaited(_openQuickCapture()),
-      );
-    } on Object {
-      // Phím tắt bị app khác chiếm — vẫn ghi nhanh được từ menu tray.
-    }
+    await HotkeyService.instance.register(() => unawaited(_openQuickCapture()));
+    if (HotkeyService.instance.isRegistered) return;
+
+    // Không im lặng nữa: nói rõ phím tắt không dùng được và còn đường nào khác.
+    NotificationCenter.instance.push(
+      kind: NotificationKind.info,
+      title: L10n.t('hotkey_failed_title'),
+      body: L10n.t2('hotkey_failed_body', {'k': HotkeyService.label}),
+    );
   }
 
   Future<void> _showWindow() async {
@@ -174,6 +171,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   Future<void> _quit() async {
     ReminderService.instance.stop();
+    await HotkeyService.instance.unregister();
     await windowManager.setPreventClose(false);
     await trayManager.destroy();
     await windowManager.destroy();
@@ -181,11 +179,17 @@ class _HomeScreenState extends State<HomeScreen>
 
   // ---------------- Hộp thoại ----------------
 
+  /// Mở hộp thoại và chặn mở trùng. Dùng try/finally vì nếu hộp thoại ném lỗi
+  /// mà cờ này kẹt ở true thì MỌI hộp thoại sau đó im lặng không mở nữa —
+  /// kể cả ghi nhanh bằng phím tắt.
   Future<void> _showDialogOnce(Widget dialog) async {
     if (_dialogOpen || !mounted) return;
     _dialogOpen = true;
-    await showDialog<void>(context: context, builder: (_) => dialog);
-    _dialogOpen = false;
+    try {
+      await showDialog<void>(context: context, builder: (_) => dialog);
+    } finally {
+      _dialogOpen = false;
+    }
   }
 
   Future<void> _openQuickCapture() async {

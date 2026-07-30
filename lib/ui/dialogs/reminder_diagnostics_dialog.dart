@@ -5,6 +5,7 @@ import '../../data/repositories/repositories.dart';
 import '../../domain/models/attendance.dart';
 import '../../domain/models/schedule_item.dart';
 import '../../domain/models/settings.dart';
+import '../../services/hotkey_service.dart';
 import '../../services/l10n.dart';
 import '../../services/reminder_service.dart';
 import '../theme.dart';
@@ -104,6 +105,14 @@ class _ReminderDiagnosticsDialogState
                     ),
                     _row(L10n.t('diag_last_error'), service.lastError ?? '—',
                         highlight: service.lastError != null),
+                    const Divider(height: 24),
+                    _row(
+                      L10n.t('diag_hotkey'),
+                      HotkeyService.instance.isRegistered
+                          ? '✅ ${HotkeyService.label}'
+                          : '❌ ${HotkeyService.instance.lastError ?? L10n.t('diag_hotkey_blocked')}',
+                      highlight: !HotkeyService.instance.isRegistered,
+                    ),
                     const Divider(height: 24),
                     _row(
                       L10n.t('diag_config'),

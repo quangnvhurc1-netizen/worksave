@@ -327,6 +327,12 @@ class L10n {
     'notif_due_at': 'Tới hạn {t}',
     'notif_kind_info': 'Thông tin',
 
+    'hotkey_failed_title': 'Không đăng ký được phím tắt',
+    'hotkey_failed_body':
+        '{k} đang bị app khác chiếm. Dùng menu chuột phải ở khay hệ thống để ghi nhanh.',
+    'diag_hotkey': 'Phím tắt ghi nhanh',
+    'diag_hotkey_blocked': 'Bị app khác chiếm',
+
     // Settings
     'settings_title': 'Cài đặt',
     'api_key': 'Google AI Studio API key',
@@ -670,6 +676,12 @@ class L10n {
     'notif_clear': 'Clear all',
     'notif_due_at': 'Due at {t}',
     'notif_kind_info': 'Info',
+
+    'hotkey_failed_title': 'Could not register the hotkey',
+    'hotkey_failed_body':
+        '{k} is taken by another app. Use the tray right-click menu for quick capture.',
+    'diag_hotkey': 'Quick-capture hotkey',
+    'diag_hotkey_blocked': 'Taken by another app',
 
     'settings_title': 'Settings',
     'api_key': 'Google AI Studio API key',

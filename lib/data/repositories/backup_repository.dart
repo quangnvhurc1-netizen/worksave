@@ -1,5 +1,6 @@
 import '../app_database.dart';
 import '../dao/backup_dao.dart';
+import '../dao/settings_dao.dart';
 
 /// Đóng gói / khôi phục toàn bộ dữ liệu dưới dạng map JSON-able.
 /// Phần đọc-ghi file nằm ở tầng service, không nằm ở đây.
@@ -22,5 +23,7 @@ class BackupRepository {
       throw const FormatException('Not a WorkSave backup file');
     }
     await _dao.restoreAll(Map<String, dynamic>.from(data['tables'] as Map));
+    // Bảng settings vừa bị ghi đè ngoài luồng ghi thường -> đệm không còn đúng.
+    SettingsDao.invalidateCache();
   }
 }

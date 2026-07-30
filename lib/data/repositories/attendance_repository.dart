@@ -12,6 +12,9 @@ import 'settings_repository.dart';
 /// không có thì dùng lịch lặp hằng tuần. Ngoại lệ không đặt giờ = hôm đó
 /// không nhắc.
 class AttendanceRepository {
+  /// Số ngày dò tối đa khi tìm lần nhắc kế tiếp.
+  static const int _lookAheadDays = 14;
+
   const AttendanceRepository({
     AttendanceDao dao = const AttendanceDao(),
     SettingsRepository settings = const SettingsRepository(),
@@ -111,14 +114,21 @@ class AttendanceRepository {
     final settings = await _settings.reminderSettings();
     final now = DateTime.now();
 
-    for (var offset = 0; offset <= 14; offset++) {
+    // Lấy ngoại lệ của cả cửa sổ dò một lần thay vì mỗi ngày một truy vấn.
+    const window = Duration(days: _lookAheadDays);
+    final overrides = await _dao.overridesBetween(
+        now.dateOnly, now.add(window).dateOnly);
+    final overrideByDate = {
+      for (final item in overrides)
+        if (item.kind == rule.kind) item.date.toIsoDate(): item,
+    };
+
+    for (var offset = 0; offset <= _lookAheadDays; offset++) {
       final day = now.add(Duration(days: offset)).dateOnly;
       if (!rule.weekdays.contains(day.weekday)) continue;
 
       // Ngoại lệ của ngày đó thắng lịch lặp.
-      final overrides = await _dao.overridesOn(day);
-      final override =
-          overrides.where((o) => o.kind == rule.kind).firstOrNull;
+      final override = overrideByDate[day.toIsoDate()];
       if (override != null && override.skipsReminder) continue;
 
       final dueAt = (override?.time ?? rule.time).onDate(day);

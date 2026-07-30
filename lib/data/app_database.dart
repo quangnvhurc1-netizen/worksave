@@ -10,7 +10,7 @@ class AppDatabase {
   AppDatabase._();
   static final AppDatabase instance = AppDatabase._();
 
-  static const int schemaVersion = 7;
+  static const int schemaVersion = 8;
 
   /// Tên mọi bảng, dùng cho sao lưu / khôi phục.
   static const List<String> tables = [
@@ -72,6 +72,29 @@ class AppDatabase {
         await _splitDeadlineIntoDateAndTime(db);
       case 7:
         await _addAttendance(db);
+      case 8:
+        await _addIndexes(db);
+    }
+  }
+
+  /// Index cho những cột luôn nằm trong WHERE/ORDER BY. Không có index thì
+  /// mỗi nhịp nhắc phải quét toàn bảng — dữ liệu tích lũy vài năm là thấy chậm.
+  Future<void> _addIndexes(Database db) async {
+    const statements = [
+      'CREATE INDEX IF NOT EXISTS idx_schedules_date ON schedules(date)',
+      'CREATE INDEX IF NOT EXISTS idx_schedules_task ON schedules(task_id)',
+      'CREATE INDEX IF NOT EXISTS idx_work_logs_task ON work_logs(task_id)',
+      'CREATE INDEX IF NOT EXISTS idx_work_logs_date ON work_logs(log_date)',
+      'CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status)',
+      'CREATE INDEX IF NOT EXISTS idx_tasks_updated ON tasks(updated_at)',
+      'CREATE INDEX IF NOT EXISTS idx_pomodoro_finished ON pomodoro(finished_at)',
+      'CREATE INDEX IF NOT EXISTS idx_attendance_ovr_date '
+          'ON attendance_overrides(date)',
+      'CREATE INDEX IF NOT EXISTS idx_journal_created ON journal(created_at)',
+      'CREATE INDEX IF NOT EXISTS idx_ideas_created ON ideas(created_at)',
+    ];
+    for (final statement in statements) {
+      await db.execute(statement);
     }
   }
 

@@ -23,9 +23,27 @@ class ScheduleRepository {
   Future<void> delete(int id) => _dao.delete(id);
 
   Future<List<ScheduleItem>> onDate(DateTime date, ClockTime dayStart) async {
-    final all = await _dao.findAll();
-    return all.where((s) => s.date.isSameDay(date)).toList()
+    final items = await _dao.findOnDate(date);
+    return items
       ..sort((a, b) => a.dueAt(dayStart).compareTo(b.dueAt(dayStart)));
+  }
+
+  /// Các mục trong khoảng ngày, gom theo ngày (khoá 'yyyy-MM-dd') và sắp theo
+  /// giờ — dựng sẵn cho lưới lịch để widget không phải tính lại mỗi lần vẽ.
+  Future<Map<String, List<ScheduleItem>>> groupedBetween(
+    DateTime from,
+    DateTime to,
+    ClockTime dayStart,
+  ) async {
+    final items = await _dao.findBetween(from, to);
+    final grouped = <String, List<ScheduleItem>>{};
+    for (final item in items) {
+      grouped.putIfAbsent(item.date.toIsoDate(), () => []).add(item);
+    }
+    for (final list in grouped.values) {
+      list.sort((a, b) => a.dueAt(dayStart).compareTo(b.dueAt(dayStart)));
+    }
+    return grouped;
   }
 
   /// Xác nhận xong / bỏ xác nhận một mục.
