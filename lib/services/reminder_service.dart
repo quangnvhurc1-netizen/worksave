@@ -9,7 +9,9 @@ import '../data/repositories/repositories.dart';
 import '../domain/enums.dart';
 import '../domain/models/attendance.dart';
 import '../domain/models/reminder.dart';
+import 'duration_text.dart';
 import 'l10n.dart';
+import 'notification_center.dart';
 import 'nudge_service.dart';
 
 /// Vòng lặp nhắc lịch kiểu báo thức, tách hẳn khỏi widget.
@@ -25,8 +27,6 @@ class ReminderService {
 
   static const NudgeService _nudges = NudgeService();
 
-  final StreamController<List<DueReminder>> _controller =
-      StreamController<List<DueReminder>>.broadcast();
   Timer? _timer;
 
   /// Nhật ký chạy, để màn hình Chẩn đoán biết vòng lặp có sống không.
@@ -37,9 +37,6 @@ class ReminderService {
   String? lastError;
 
   bool get isRunning => _timer != null;
-
-  /// UI lắng nghe để hiện snackbar; không bắt buộc phải nghe.
-  Stream<List<DueReminder>> get onRemindersFired => _controller.stream;
 
   void start() {
     if (_timer != null) return;
@@ -117,10 +114,15 @@ class ReminderService {
 
     for (final reminder in due) {
       _notify(reminder, nagMinutes);
+      NotificationCenter.instance.push(
+        kind: NotificationKind.schedule,
+        title: reminder.item.content,
+        body: L10n.t2('notif_due_at', {'t': formatTime(reminder.dueAt)}),
+        targetTab: AppTab.schedule,
+      );
       final id = reminder.item.id;
       if (id != null) await Repos.schedules.markNotified(id);
     }
-    if (!_controller.isClosed) _controller.add(due);
     return due.length;
   }
 
@@ -128,6 +130,12 @@ class ReminderService {
     final due = await Repos.attendance.dueReminders();
     for (final slot in due) {
       await _notifyAttendance(slot, nagMinutes);
+      NotificationCenter.instance.push(
+        kind: NotificationKind.attendance,
+        title: L10n.t(slot.kind.l10nKey),
+        body: L10n.t2('notif_due_at', {'t': formatTime(slot.dueAt)}),
+        targetTab: AppTab.attendance,
+      );
       await Repos.attendance.markNotified(slot.dueAt, slot.kind);
     }
     return due.length;
@@ -148,11 +156,11 @@ class ReminderService {
   void _notify(DueReminder reminder, int nagMinutes) {
     final item = reminder.item;
     final headline = switch (reminder.stage) {
-      ReminderStage.early =>
-        L10n.t2('notif_early', {'n': '${reminder.minutesEarly}'}),
+      ReminderStage.early => L10n.t2(
+          'notif_early', {'d': formatHumanDuration(reminder.timeLeft)}),
       ReminderStage.due => L10n.t('notif_now'),
-      ReminderStage.overdue =>
-        L10n.t2('notif_overdue', {'n': '${reminder.minutesLate}'}),
+      ReminderStage.overdue => L10n.t2(
+          'notif_overdue', {'d': formatHumanDuration(reminder.overdueBy)}),
     };
 
     LocalNotification(
@@ -165,8 +173,5 @@ class ReminderService {
     ).show();
   }
 
-  void dispose() {
-    stop();
-    _controller.close();
-  }
+  void dispose() => stop();
 }

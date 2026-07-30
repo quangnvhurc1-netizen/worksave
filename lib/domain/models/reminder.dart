@@ -23,6 +23,9 @@ class DueReminder {
     return ReminderStage.due;
   }
 
-  int get minutesEarly => remaining.inMinutes;
-  int get minutesLate => -remaining.inMinutes;
+  /// Còn bao lâu nữa tới hạn (chỉ dùng khi [stage] là early).
+  Duration get timeLeft => remaining;
+
+  /// Đã quá hạn bao lâu (chỉ dùng khi [stage] là overdue).
+  Duration get overdueBy => -remaining;
 }

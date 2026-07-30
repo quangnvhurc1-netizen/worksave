@@ -10,7 +10,6 @@ import '../../core/date_x.dart';
 import '../../data/repositories/repositories.dart';
 import '../../domain/enums.dart';
 import '../../domain/models/notes.dart';
-import '../../domain/models/reminder.dart';
 import '../../domain/models/task.dart';
 import '../../services/l10n.dart';
 import '../../services/reminder_service.dart';
@@ -21,6 +20,7 @@ import '../dialogs/search_dialog.dart';
 import '../dialogs/settings_dialog.dart';
 import '../theme.dart';
 import '../widgets/celebration_overlay.dart';
+import '../widgets/notification_menu.dart';
 import '../widgets/unfinished_banner.dart';
 import 'attendance_screen.dart';
 import 'ideas_screen.dart';
@@ -55,7 +55,6 @@ class _HomeScreenState extends State<HomeScreen>
   bool _dialogOpen = false;
 
   Timer? _reviewTimer;
-  StreamSubscription<List<DueReminder>>? _reminderSubscription;
 
   @override
   void initState() {
@@ -70,8 +69,6 @@ class _HomeScreenState extends State<HomeScreen>
     unawaited(_registerHotkey());
 
     ReminderService.instance.start();
-    _reminderSubscription =
-        ReminderService.instance.onRemindersFired.listen(_showReminderSnackBar);
 
     unawaited(_refreshUnfinished());
     WidgetsBinding.instance
@@ -85,7 +82,6 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   void dispose() {
     _reviewTimer?.cancel();
-    unawaited(_reminderSubscription?.cancel() ?? Future<void>.value());
     ReminderService.instance.stop();
     TabOrderService.order.removeListener(_onTabOrderChanged);
     L10n.language.removeListener(_onLanguageChanged);
@@ -225,19 +221,6 @@ class _HomeScreenState extends State<HomeScreen>
     await _showDialogOnce(_LatestCheckpointDialog(checkpoint: checkpoint));
   }
 
-  void _showReminderSnackBar(List<DueReminder> reminders) {
-    if (!mounted || reminders.isEmpty) return;
-    final summary = reminders.map((r) => r.item.content).join(' · ');
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('🔔 $summary'),
-      duration: const Duration(seconds: 8),
-      action: SnackBarAction(
-        label: L10n.t('tab_schedule'),
-        onPressed: () => _goToTab(AppTab.schedule),
-      ),
-    ));
-  }
-
   // ---------------- Dựng giao diện ----------------
 
   Widget _pageFor(AppTab tab) => switch (tab) {
@@ -296,11 +279,7 @@ class _HomeScreenState extends State<HomeScreen>
       labelType: NavigationRailLabelType.all,
       leading: Column(
         children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
-            child: Icon(Icons.videogame_asset,
-                size: 32, color: AppColors.primary),
-          ),
+          NotificationMenu(onOpenTab: _goToTab),
           IconButton(
             tooltip: L10n.t('search_tooltip'),
             icon: const Icon(Icons.search),

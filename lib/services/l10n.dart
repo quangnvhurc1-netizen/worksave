@@ -150,7 +150,6 @@ class L10n {
     'jump_month': 'Nhảy tới tháng',
     'prev_month': 'Tháng trước',
     'next_month': 'Tháng sau',
-    'more_items': '+{n} việc nữa',
     'confirmed_done': 'Đã xác nhận xong — không nhắc nữa',
     'remind_muted': 'Đã tắt nhắc — chỉ hiện trên lịch',
     'deadline_nag': 'Deadline task — nhắc 10 phút/lần khi tới hạn',
@@ -164,9 +163,13 @@ class L10n {
 
     'notif_title_deadline': 'WorkSave — Deadline task',
     'notif_title_schedule': 'WorkSave — Lịch nhắc',
-    'notif_early': '⏳ Còn {n} phút nữa tới hạn',
+    'notif_early': '⏳ Còn {d} nữa tới hạn',
+    'dur_under_minute': 'chưa tới 1 phút',
+    'dur_minutes': '{n} phút',
+    'dur_hours': '{n} giờ',
+    'dur_days': '{n} ngày',
     'notif_now': '🔔 Đã tới hạn',
-    'notif_overdue': '⚠ Đã quá hạn {n} phút',
+    'notif_overdue': '⚠ Đã quá hạn {d}',
     'notif_repeat': '(nhắc lại mỗi {n} phút tới khi bạn xác nhận xong)',
     'reminder_section': 'Cách nhắc lịch',
     'reminder_note':
@@ -315,6 +318,14 @@ class L10n {
     'attendance_status_active':
         '🔔 Đang nhắc từ {t} hôm nay — xác nhận để dừng.',
     'attendance_confirm_short': 'Đã chấm công',
+
+    // Hộp thư thông báo
+    'notif_center': 'Thông báo',
+    'notif_empty': 'Chưa có thông báo nào.',
+    'notif_mark_all': 'Đánh dấu đã đọc',
+    'notif_clear': 'Xóa hết',
+    'notif_due_at': 'Tới hạn {t}',
+    'notif_kind_info': 'Thông tin',
 
     // Settings
     'settings_title': 'Cài đặt',
@@ -483,7 +494,6 @@ class L10n {
     'jump_month': 'Jump to month',
     'prev_month': 'Previous month',
     'next_month': 'Next month',
-    'more_items': '+{n} more',
     'confirmed_done': 'Confirmed done — no more reminders',
     'remind_muted': 'Reminders off — shown on calendar only',
     'deadline_nag': 'Task deadline — reminds every 10 min when due',
@@ -497,9 +507,13 @@ class L10n {
 
     'notif_title_deadline': 'WorkSave — Task deadline',
     'notif_title_schedule': 'WorkSave — Reminder',
-    'notif_early': '⏳ Due in {n} minutes',
+    'notif_early': '⏳ Due in {d}',
+    'dur_under_minute': 'less than a minute',
+    'dur_minutes': '{n} min',
+    'dur_hours': '{n} h',
+    'dur_days': '{n} d',
     'notif_now': '🔔 Due now',
-    'notif_overdue': '⚠ Overdue by {n} minutes',
+    'notif_overdue': '⚠ Overdue by {d}',
     'notif_repeat': '(repeats every {n} minutes until you confirm it is done)',
     'reminder_section': 'Reminder behaviour',
     'reminder_note':
@@ -648,6 +662,14 @@ class L10n {
     'attendance_status_active':
         '🔔 Reminding since {t} today — confirm to stop.',
     'attendance_confirm_short': 'Clocked',
+
+    // Notification centre
+    'notif_center': 'Notifications',
+    'notif_empty': 'No notifications yet.',
+    'notif_mark_all': 'Mark all read',
+    'notif_clear': 'Clear all',
+    'notif_due_at': 'Due at {t}',
+    'notif_kind_info': 'Info',
 
     'settings_title': 'Settings',
     'api_key': 'Google AI Studio API key',

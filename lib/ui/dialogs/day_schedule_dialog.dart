@@ -78,13 +78,9 @@ class _DayScheduleDialogState extends State<DayScheduleDialog> {
     await _load();
   }
 
+  /// Chỉ sửa được mục nhập tay. Mục sinh từ deadline của task phải sửa ở tab
+  /// Task để hai nơi không lệch dữ liệu — nên nút sửa đơn giản là không bật.
   Future<void> _edit(ScheduleItem item) async {
-    if (item.isFromTask) {
-      // Mục sinh từ task: sửa ở tab Task để hai nơi không lệch dữ liệu.
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(L10n.t('edit_in_task'))));
-      return;
-    }
     final updated = await showDialog<ScheduleItem>(
       context: context,
       builder: (_) => _EditScheduleItemDialog(item: item),
@@ -196,9 +192,24 @@ class _DayScheduleDialogState extends State<DayScheduleDialog> {
                                 : null,
                           ),
                         ),
-                        subtitle: Text(_subtitleFor(item),
-                            style: const TextStyle(fontSize: 11)),
-                        onTap: () => _edit(item),
+                        subtitle: Row(
+                          children: [
+                            if (item.isFromTask)
+                              Padding(
+                                padding: const EdgeInsets.only(right: 4),
+                                child: Tooltip(
+                                  message: L10n.t('edit_in_task'),
+                                  child: const Icon(Icons.lock_outline,
+                                      size: 12, color: Colors.black38),
+                                ),
+                              ),
+                            Expanded(
+                              child: Text(_subtitleFor(item),
+                                  style: const TextStyle(fontSize: 11)),
+                            ),
+                          ],
+                        ),
+                        onTap: item.isFromTask ? null : () => _edit(item),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [

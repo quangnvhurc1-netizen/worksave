@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../core/clock_time.dart';
 import '../../core/date_x.dart';
 import '../../data/repositories/repositories.dart';
 import '../../domain/models/schedule_item.dart';
@@ -129,7 +128,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                               isToday: days[week * _daysPerWeek + day]
                                   .isSameDay(today),
                               isWeekend: day >= 5,
-                              dayStart: _reminder.dayStart,
                               onTap: () =>
                                   _openDay(days[week * _daysPerWeek + day]),
                             ),
@@ -221,7 +219,6 @@ class _DayCell extends StatelessWidget {
     required this.isCurrentMonth,
     required this.isToday,
     required this.isWeekend,
-    required this.dayStart,
     required this.onTap,
   });
 
@@ -230,10 +227,7 @@ class _DayCell extends StatelessWidget {
   final bool isCurrentMonth;
   final bool isToday;
   final bool isWeekend;
-  final ClockTime dayStart;
   final VoidCallback onTap;
-
-  static const int _maxChips = 3;
 
   Color get _background {
     if (isToday) return AppColors.infoSurface;
@@ -243,9 +237,6 @@ class _DayCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final visible = items.take(_maxChips).toList();
-    final hidden = items.length - visible.length;
-
     return InkWell(
       onTap: onTap,
       child: Container(
@@ -265,17 +256,20 @@ class _DayCell extends StatelessWidget {
             _buildDayNumber(),
             const SizedBox(height: 2),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (final item in visible)
-                    _ScheduleChip(
-                        item: item, isCurrentMonth: isCurrentMonth),
-                  if (hidden > 0)
-                    Text(L10n.t2('more_items', {'n': '$hidden'}),
-                        style: const TextStyle(
-                            fontSize: 10, color: Colors.black45)),
-                ],
+              // Ô ngày cuộn được: nhiều việc thì lăn chuột trong ô để xem
+              // hết, thay vì cắt bớt và làm mất thông tin.
+              child: Scrollbar(
+                thickness: 3,
+                radius: const Radius.circular(2),
+                child: ListView.builder(
+                  padding: EdgeInsets.zero,
+                  physics: const ClampingScrollPhysics(),
+                  itemCount: items.length,
+                  itemBuilder: (context, index) => _ScheduleChip(
+                    item: items[index],
+                    isCurrentMonth: isCurrentMonth,
+                  ),
+                ),
               ),
             ),
           ],
@@ -334,8 +328,10 @@ class _ScheduleChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final prefix = item.time == null ? '' : '${item.time!.format()} ';
     return Container(
+      height: 17,
+      alignment: Alignment.centerLeft,
       margin: const EdgeInsets.only(bottom: 2),
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: 1.5),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
       decoration: BoxDecoration(
         color: _fill,
         borderRadius: BorderRadius.circular(3),

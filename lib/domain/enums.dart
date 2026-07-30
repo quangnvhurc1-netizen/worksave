@@ -68,6 +68,17 @@ enum AppLanguage {
 
 enum QuickCaptureTarget { journal, idea }
 
+/// Loại thông báo trong hộp thư của app.
+enum NotificationKind {
+  schedule('tab_schedule'),
+  attendance('tab_attendance'),
+  pomodoro('tab_pomodoro'),
+  info('notif_kind_info');
+
+  const NotificationKind(this.l10nKey);
+  final String l10nKey;
+}
+
 /// Giọng của câu nhắc chấm công.
 enum NudgeTone {
   gentle('gentle', 'tone_gentle'),

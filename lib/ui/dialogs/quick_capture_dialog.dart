@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../data/repositories/repositories.dart';
 import '../../domain/enums.dart';
 import '../../services/l10n.dart';
-import '../theme.dart';
 
 /// Ghi nhanh vào Nhật ký hoặc Ý tưởng (Ctrl+Shift+Space).
 class QuickCaptureDialog extends StatefulWidget {

@@ -10,6 +10,7 @@ import '../../domain/models/settings.dart';
 import '../../domain/models/task.dart';
 import '../../services/celebration.dart';
 import '../../services/l10n.dart';
+import '../../services/notification_center.dart';
 import '../theme.dart';
 
 /// Đồng hồ Pomodoro; phiên focus xong sẽ tự ghi nhật ký cho task đang gắn.
@@ -130,13 +131,17 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
           L10n.t2('praise_pomodoro', {'m': '${_settings.focusMinutes}'}));
     }
 
-    LocalNotification(
-      title: wasFocus
-          ? L10n.t('pomo_done_notif')
-          : L10n.t('pomo_break_notif'),
-      body:
-          wasFocus ? L10n.t('pomo_done_body') : L10n.t('pomo_break_body'),
-    ).show();
+    final title =
+        wasFocus ? L10n.t('pomo_done_notif') : L10n.t('pomo_break_notif');
+    final body =
+        wasFocus ? L10n.t('pomo_done_body') : L10n.t('pomo_break_body');
+    LocalNotification(title: title, body: body).show();
+    NotificationCenter.instance.push(
+      kind: NotificationKind.pomodoro,
+      title: title,
+      body: body,
+      targetTab: AppTab.pomodoro,
+    );
 
     _startedAt = null;
     _advance(countFocus: wasFocus);
